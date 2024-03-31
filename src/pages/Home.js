@@ -25,7 +25,7 @@ const useMap = () => {
     );
   
     return [map, actions];
-  };
+};
 
 function Home () {
     const [blockData, { set, remove, clear }] = useMap();
@@ -38,6 +38,31 @@ function Home () {
     const getBlockData = async () => {
         if(parseInt(blockIs.current) > 0) {
             const response = await fetch(process.env.REACT_APP_INDEXER_ENDPOINT + "/block/last");
+
+
+
+            fetch(process.env.REACT_APP_INDEXER_ENDPOINT + "/block/last")
+            .then(response => {
+                // Check if response is successful (status code 200)
+                if (!response.ok) {
+                throw new Error('Network response was not ok');
+                }
+                // Parse the response body as JSON
+                return response.json();
+            })
+            .then(data => {
+                // Log the data received from the server
+                console.log(data);
+                // Further processing of the data if needed
+                // For example, update state with the received data
+            })
+            .catch(error => {
+                // Handle any errors that occurred during the fetch
+                console.error('There was a problem with the fetch operation:', error);
+            });
+
+
+
             const _blockData = await response.json();
             const _latestBlock = _blockData["header"]["height"]
             if(_latestBlock !== blockIs.current) {
@@ -101,19 +126,19 @@ function Home () {
     },[])
 
     function BlockPane ({ blockId }) {
-        const _blockData = blockData.get(blockId)
+        const _blockData = blockData.get(blockId);
         const timeDiff = new Date() - new Date(_blockData["block_time"]);
-        let timeAgo = ""
+        let timeAgo = "";
         if(timeDiff < 1000) {
-            timeAgo = timeDiff + " millisecs ago"
+            timeAgo = timeDiff + " millisecs ago";
         } else if((timeDiff/1000) < 60) {
-            timeAgo = parseInt((timeDiff/1000)) + " secs ago"
+            timeAgo = parseInt((timeDiff/1000)) + " secs ago";
         } else if((timeDiff/60000) < 60) {
-            timeAgo = parseInt((timeDiff/60000)) + " mins ago"
+            timeAgo = parseInt((timeDiff/60000)) + " mins ago";
         } else if((timeDiff/360000) < 24){
-            timeAgo = parseInt((timeDiff/3600000)) + " hours ago"
+            timeAgo = parseInt((timeDiff/3600000)) + " hours ago";
         } else {
-            timeAgo = parseInt((timeDiff/86400000)) + " days ago"
+            timeAgo = parseInt((timeDiff/86400000)) + " days ago";
         }
         return (
             <div className='flex items-center justify-between w-full border-t border-gray-500 py-4'>
@@ -131,19 +156,27 @@ function Home () {
                         <Link to={`/search/${_blockData["block_height"]}`}><button className='text-sm font-semibold underline'>#{_blockData["block_height"]}</button></Link>
                     </div>
                 </div>
-                <div className='text-[14px] w-[100px] truncate'>{_blockData["block_hash"]}</div>
-                <div className='text-[14px] w-[120px] truncate'>{_blockData["proposer"]}</div>
-                {/* <div className='text-[10px] sm:text-xs'></div> */}
+                <div className='text-center'>
+                    <div className='text-[14px]'>{_blockData["block_hash"]}</div>
+                </div>
+                <div className='text-center'>
+                    <div className='text-[14px]'>{_blockData["proposer"]}</div>
+                </div>
                 <div>{_blockData["txn_size"]}</div>
-                <div className='text-[14px] truncate'>{timeAgo}</div>
+                <div className='text-[14px]'>{timeAgo}</div>
             </div>
-        )
+        );
     }
+    
+    
+    
+    
 
-    function ValidatorPane ({ _validatorData }) {
+    function ValidatorPane ({ _validatorData, index }) {
         return (
             <div className='flex items-center justify-between w-full border-t border-gray-500 py-4'>
-                <div className='text-[14px] w-content truncate'>{_validatorData["address"]}</div>
+                <div className='text-[14px]'>{index}</div> {/* Display the index */}
+                <div className='text-[14px] w-64 truncate'>{_validatorData["address"]}</div>
                 <div className='text-[14px]'>{parseFloat(_validatorData["voting_power"]/1000000)} NAAN</div>
                 <div>{_validatorData["proposer_priority"]}</div>
             </div>
@@ -178,17 +211,27 @@ function Home () {
                 <div className='w-full px-6 rounded-md overflow-x-auto'>
                     <div className='py-6'>
                         <div className='flex justify-between py-4 font-bold'>
-                            <div className='w-24'>block</div>
-                            <div className='w-24'>hash</div>
-                            <div>proposer</div>
-                            <div>txns</div>
-                            <div>age</div>
+                            <div className='w-24 text-center'>Block</div>
+                            <div className='w-24 text-center'>Hash</div>
+                            <div className='w-24 text-center'>Proposer</div>
+                            <div className='w-24 text-center'>Txns</div>
+                            <div className='w-24 text-center'>Date</div>
                         </div>
                         <div>
                             {
                                 [...blockData.keys()].sort((a, b) => (b - a)).map((element) => {
+                                    const _blockData = blockData.get(element);
+                                    const hashWidth = _blockData["block_hash"].length * 10; // Adjust the multiplier as needed
+                                    const proposerWidth = _blockData["proposer"].length * 10; // Adjust the multiplier as needed
+                                    const txnsWidth = _blockData["txn_size"].toString().length * 10; // Adjust the multiplier as needed
                                     return (
-                                        <BlockPane blockId={element}/>
+                                        <BlockPane
+                                            key={element}
+                                            blockId={element}
+                                            hashWidth={hashWidth}
+                                            proposerWidth={proposerWidth}
+                                            txnsWidth={txnsWidth}
+                                        />
                                     )
                                 })
                             }
@@ -196,20 +239,23 @@ function Home () {
                     </div>
                 </div>
             </div>
+
+
             <div className='p-4 pt-8 text-2xl text-black font-semibold'> Top Validators</div>
             <div className='w-full flex items-center justify-between space-x-6'>
                 <div className='w-full px-6 bg-[#212529] rounded-md overflow-x-scroll'>
                     <div className='py-6'>
                         <div className='flex justify-between py-4 font-bold text-md'>
-                            <div className='w-64'>validator</div>
-                            <div >voting power</div>
-                            <div>priority</div>
+                            <div className='w-12'>#</div> {/* Add numbering column */}
+                            <div className='w-64'>Validator</div>
+                            <div>Voting power</div>
+                            <div>Priority</div>
                         </div>
                         <div>
                             {
-                                JSON.stringify(validatorData) !== '{}' && validatorData !== undefined ? validatorData["validators"].map(element => {
+                                JSON.stringify(validatorData) !== '{}' && validatorData !== undefined ? validatorData["validators"].map((element, index) => {
                                     return (
-                                        <ValidatorPane _validatorData={element}/>
+                                        <ValidatorPane key={index} _validatorData={element} index={index + 1} />
                                     )
                                 }) : ''
                             }
